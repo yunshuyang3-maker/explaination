@@ -12,7 +12,8 @@ body { margin:0; font-family:Arial; background:var(--bg); color:var(--text); }
 header { background:var(--accent); color:white; padding:20px; text-align:center; }
 header button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
 main { max-width:900px; margin:20px auto; padding:15px; }
-input { width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; }
+input { width:80%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; }
+button.summarize { padding:10px 15px; border:none; border-radius:6px; background:var(--accent); color:white; cursor:pointer; margin-left:5px; }
 .card { background:var(--card); padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.1); transition: transform 0.2s; }
 .card:hover { transform: scale(1.01); }
 .tag { font-size:12px; color:var(--accent); margin-bottom:5px; display:block; }
@@ -30,7 +31,10 @@ footer { text-align:center; opacity:.7; padding:15px; }
 </header>
 
 <main>
-<input id="search" placeholder="Type something to summarize..." onkeydown="if(event.key==='Enter'){getSummary(search.value);}">
+<div style="display:flex; align-items:center;">
+  <input id="search" placeholder="Type something to summarize..." onkeyup="searchCards(event)">
+  <button class="summarize" onclick="addTopic()">Summarize</button>
+</div>
 <div id="cardsContainer"></div>
 </main>
 
@@ -46,7 +50,28 @@ function like(id){
   document.getElementById("l"+id).innerText = count;
 }
 
-// Fetch summary from Wikipedia
+// Add topic from input
+function addTopic(){
+  const topicInput = document.getElementById("search");
+  const topic = topicInput.value.trim();
+  if(topic) getSummary(topic);
+  topicInput.value = "";
+}
+
+// Press Enter also works
+document.getElementById("search").addEventListener("keydown", function(e){
+  if(e.key === "Enter") addTopic();
+});
+
+// Live search/filter
+function searchCards(e){
+  const v = e.target.value.toLowerCase();
+  document.querySelectorAll(".card").forEach(c=>{
+    c.style.display = c.innerText.toLowerCase().includes(v) ? "block" : "none";
+  });
+}
+
+// Fetch summary from Wikipedia and create card
 async function getSummary(topic){
   const container = document.getElementById("cardsContainer");
   const card = document.createElement("div");
@@ -71,9 +96,12 @@ async function getSummary(topic){
     }
   } catch(err){
     console.error(err);
-    card.innerHTML = `<h2>${topic}</h2><p>Could not fetch summary. Please check your internet connection.</p>`;
+    card.innerHTML = `<h2>${topic}</h2><p>Could not fetch summary. Check your internet connection.</p>`;
   }
 }
+
+// Add default topics
+["Artificial intelligence", "Gravity", "Procrastination"].forEach(t => getSummary(t));
 </script>
 
 </body>
