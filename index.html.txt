@@ -51,44 +51,15 @@ footer { text-align:center; opacity:.7; padding:15px; }
 
 <input id="search" placeholder="Search something..." onkeyup="searchCards()">
 
-<!-- CARD 1 -->
-<div class="card">
-  <div class="tag">Technology</div>
-  <h2>What is AI?</h2>
-  <p>AI is when computers learn from data to make decisions.</p>
-  <p><b>Example:</b> YouTube recommending videos.</p>
-  <div class="like" onclick="like(0)">👍 Likes: <span id="l0">0</span></div>
-</div>
-
-<!-- CARD 2 -->
-<div class="card">
-  <div class="tag">Life Skills</div>
-  <h2>Why do we procrastinate?</h2>
-  <p>Our brain prefers easy fun over hard work.</p>
-  <p><b>Example:</b> Gaming instead of homework.</p>
-  <div class="like" onclick="like(1)">👍 Likes: <span id="l1">0</span></div>
-</div>
-
-<!-- CARD 3 -->
-<div class="card">
-  <div class="tag">School</div>
-  <h2>What is gravity?</h2>
-  <p>Gravity is the force that pulls objects toward each other.</p>
-  <p><b>Example:</b> Dropping a phone makes it fall down.</p>
-  <div class="like" onclick="like(2)">👍 Likes: <span id="l2">0</span></div>
-</div>
-
-<!-- ABOUT -->
-<div class="card">
-  <h2>About This Website</h2>
-  <p>This website explains hard topics using simple words so anyone can understand in under one minute.</p>
+<div id="cardsContainer">
+  <!-- Cards will be dynamically added here -->
 </div>
 
 <!-- SUGGESTION -->
 <div class="card">
   <h2>Suggest a Topic</h2>
-  <textarea placeholder="What should we explain next?"></textarea>
-  <button>Send (demo)</button>
+  <textarea id="suggestion" placeholder="What should we explain next?"></textarea>
+  <button onclick="addTopic()">Send (demo)</button>
 </div>
 
 </main>
@@ -105,20 +76,51 @@ function toggleDark(){
 function searchCards(){
   let v = search.value.toLowerCase();
   document.querySelectorAll(".card").forEach(c=>{
-    c.style.display = c.innerText.toLowerCase().includes(v)?"block":"none";
+    if(c.id !== "suggestionCard"){
+      c.style.display = c.innerText.toLowerCase().includes(v)?"block":"none";
+    }
   });
 }
 
-function like(n){
-  let count = localStorage.getItem("like"+n) || 0;
+// Like system
+function like(id){
+  let count = localStorage.getItem("like"+id) || 0;
   count++;
-  localStorage.setItem("like"+n,count);
-  document.getElementById("l"+n).innerText = count;
+  localStorage.setItem("like"+id,count);
+  document.getElementById("l"+id).innerText = count;
 }
 
-// Load saved likes
-for(let i=0;i<3;i++){
-  document.getElementById("l"+i).innerText = localStorage.getItem("like"+i) || 0;
+// Function to fetch explanations from Wikipedia
+async function fetchExplanation(topic, id){
+  try {
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    const container = document.getElementById("cardsContainer");
+
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="tag">Info</div>
+      <h2>${data.title}</h2>
+      <p>${data.extract || "No explanation found."}</p>
+      <div class="like" onclick="like(${id})">👍 Likes: <span id="l${id}">${localStorage.getItem("like"+id) || 0}</span></div>
+    `;
+    container.appendChild(card);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Example topics to load on page load
+const topics = ["Artificial intelligence", "Gravity", "Procrastination"];
+topics.forEach((t,i)=>fetchExplanation(t,i));
+
+// Adding user suggestions (demo)
+function addTopic(){
+  const topic = document.getElementById("suggestion").value;
+  if(topic.trim() !== "") fetchExplanation(topic, Date.now()); // Unique ID
+  document.getElementById("suggestion").value = "";
 }
 </script>
 
