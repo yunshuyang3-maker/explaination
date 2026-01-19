@@ -6,21 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root {
-  --bg:#f4f6f8; --card:#fff; --text:#222; --accent:#4a6cff;
-}
-body.dark {
-  --bg:#121212; --card:#1e1e1e; --text:#f0f0f0; --accent:#8aa4ff;
-}
-body {
-  margin:0; font-family:Arial; background:var(--bg); color:var(--text);
-}
-header {
-  background:var(--accent); color:white; padding:20px; text-align:center;
-}
+:root { --bg:#f4f6f8; --card:#fff; --text:#222; --accent:#4a6cff; }
+body.dark { --bg:#121212; --card:#1e1e1e; --text:#f0f0f0; --accent:#8aa4ff; }
+body { margin:0; font-family:Arial; background:var(--bg); color:var(--text); }
+header { background:var(--accent); color:white; padding:20px; text-align:center; }
 header button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
 main { max-width:900px; margin:20px auto; padding:15px; }
-input, textarea { width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; }
+input { width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; }
 .card { background:var(--card); padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.1); transition: transform 0.2s; }
 .card:hover { transform: scale(1.01); }
 .tag { font-size:12px; color:var(--accent); margin-bottom:5px; display:block; }
@@ -39,10 +31,10 @@ footer { text-align:center; opacity:.7; padding:15px; }
 
 <main>
 
-<input id="search" placeholder="Type something to summarize..." onkeydown="if(event.key==='Enter'){summarizeTopic(search.value);}">
+<input id="search" placeholder="Type something to summarize..." onkeydown="if(event.key==='Enter'){getSummary(search.value);}">
 
 <div id="cardsContainer">
-  <!-- Summaries will appear here -->
+  <!-- Summaries appear here -->
 </div>
 
 </main>
@@ -53,6 +45,7 @@ footer { text-align:center; opacity:.7; padding:15px; }
 
 <script>
 function toggleDark(){ document.body.classList.toggle("dark"); }
+
 function like(id){
   let count = localStorage.getItem("like"+id) || 0;
   count++;
@@ -60,34 +53,52 @@ function like(id){
   document.getElementById("l"+id).innerText = count;
 }
 
-// Function to summarize topics using OpenAI (or other API)
-async function summarizeTopic(topic){
+// Main function: Wikipedia first, AI fallback
+async function getSummary(topic){
   const container = document.getElementById("cardsContainer");
-  
-  // Create a loading card
-  const loadingCard = document.createElement("div");
-  loadingCard.className = "card";
-  loadingCard.innerHTML = `<h2>${topic}</h2><p>Loading summary...</p>`;
-  container.prepend(loadingCard);
+
+  // Loading card
+  const card = document.createElement("div");
+  card.className = "card";
+  const cardId = Date.now();
+  card.innerHTML = `<h2>${topic}</h2><p>Loading summary...</p>`;
+  container.prepend(card);
 
   try {
-    // Replace this with your actual backend call to OpenAI or summarization API
-    const response = await fetch("YOUR_BACKEND_SUMMARIZE_ENDPOINT", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ topic })
-    });
-    const data = await response.json(); // Should return { summary: "..." }
+    // Try Wikipedia
+    let wikiResp = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`);
+    let wikiData = await wikiResp.json();
 
-    loadingCard.innerHTML = `
-      <div class="tag">Summary</div>
-      <h2>${topic}</h2>
-      <p>${data.summary}</p>
-      <div class="like" onclick="like(${Date.now()})">👍 Likes: <span id="l${Date.now()}">0</span></div>
-    `;
-  } catch(err){
-    console.error(err);
-    loadingCard.innerHTML = `<h2>${topic}</h2><p>Sorry, couldn't summarize this topic.</p>`;
+    if(wikiData.extract){
+      card.innerHTML = `
+        <div class="tag">Wikipedia</div>
+        <h2>${wikiData.title}</h2>
+        <p>${wikiData.extract}</p>
+        <div class="like" onclick="like(${cardId})">👍 Likes: <span id="l${cardId}">${localStorage.getItem("like"+cardId) || 0}</span></div>
+      `;
+    } else {
+      throw new Error("No Wikipedia summary found");
+    }
+  } catch {
+    // Fallback: AI Summarization (needs your backend)
+    try {
+      const aiResp = await fetch("YOUR_BACKEND_SUMMARIZE_ENDPOINT", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ topic })
+      });
+      const aiData = await aiResp.json(); // { summary: "..." }
+
+      card.innerHTML = `
+        <div class="tag">AI Summary</div>
+        <h2>${topic}</h2>
+        <p>${aiData.summary}</p>
+        <div class="like" onclick="like(${cardId})">👍 Likes: <span id="l${cardId}">${localStorage.getItem("like"+cardId) || 0}</span></div>
+      `;
+    } catch(err){
+      card.innerHTML = `<h2>${topic}</h2><p>Sorry, couldn't summarize this topic.</p>`;
+      console.error(err);
+    }
   }
 }
 </script>
