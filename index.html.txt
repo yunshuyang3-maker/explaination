@@ -100,8 +100,15 @@ async function getSummary(topic){
   }
 }
 
-// Add default topics
-["Artificial intelligence", "Gravity", "Procrastination"].forEach(t => getSummary(t));
+// Large set of default topics
+const defaultTopics = [
+  "Artificial intelligence", "Gravity", "Procrastination", "Photosynthesis", "Blockchain",
+  "Quantum mechanics", "Black holes", "Relativity", "Evolution", "Internet of Things",
+  "Climate change", "Electricity", "Plate tectonics", "DNA", "Vaccines",
+  "Machine learning", "Neurons", "Economics", "Cryptocurrency", "Light"
+];
+
+defaultTopics.forEach(t => getSummary(t));
 </script>
 
 </body>
